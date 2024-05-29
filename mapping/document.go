@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/blevesearch/bleve/v2/registry"
@@ -173,6 +174,22 @@ OUTER:
 		if subDocMapping, exists := current.Properties[pathElement]; exists {
 			current = subDocMapping
 			continue OUTER
+		}
+
+		// This hack searches for a prefix property
+		// specification that matches pathElement.
+		//
+		// Yes, it's a linear search, but the search is short
+		// enough.  We could optimize the strings work that
+		// occurs if warranted.
+		for prop, subDocMapping := range current.Properties {
+			if strings.HasSuffix(prop, "*") {
+				prop = strings.TrimRight(prop, "*")
+				if strings.HasPrefix(pathElement, prop) {
+					current = subDocMapping
+					continue OUTER
+				}
+			}
 		}
 
 		// no subDocMapping matches this pathElement
